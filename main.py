@@ -9,20 +9,18 @@ import json
 import ctypes
 import platform
 
-version = 2
-version_string = "v0.0.2"
+version = 3
+version_string = "v0.0.3"
 debug = False
 template_filename = "template.json"
 template = {}
 markers = []
 if not os.path.isfile("settings.json"):
     with open("settings.json", "w") as f:
-        f.write(json.dumps({"dpi": True, "version": version}, indent=4))
+        f.write(json.dumps({"dpi": True}, indent=4))
 else:
     with open("settings.json", "r") as f:
         settings = json.loads(f.read())
-        if settings["version"] > version:
-            version_string = version_string + " (modified)"
 if not os.path.isfile(template_filename):
     with open(template_filename, "w") as f:
         f.write(json.dumps({"before": "", "after": ""}, indent=4))
@@ -42,20 +40,30 @@ else:
     template_files = ["Last used"]
 
 
-def check_for_update():
+def check_for_update(window: sg.Window):
+    global debug
     print("Checking for updates...")
     try:
         with urllib.request.urlopen(
-                "https://raw.githubusercontent.com/MrRazamataz/PremierPro-Markers/main/version.json") as url:
+                "https://raw.githubusercontent.com/MrRazamataz/PremierPro-Markers/master/version.json") as url:
             data = json.loads(url.read().decode())
             if data["version"] > version:
                 print("Update available!")
                 release_notes = data["release_notes"]
-                sg.Popup(f"Update available!\nRelease notes:\n{release_notes}\nDownload from GitHub (Ctrl + U)!", title="Update")
-
+                window["-program_log-"].update(f"{version_string} (outdated - update available)")
+                return True, release_notes
+            elif data["version"] == version:
+                print("Up to date!")
+                window["-program_log-"].update(version_string)
+            elif data["version"] < version:
+                print("You're using a newer version than the latest release, DEBUG MODE ON!")
+                print("Make sure to PR any cool changes you make :)\n----")
+                debug = True
+                window["-program_log-"].update(f"{version_string} (modified)")
     except Exception as e:
         print("Error checking for updates: " + str(e))
         print(traceback.format_exc())
+    return False, "none"
 
 
 def make_dpi_aware():
@@ -107,7 +115,7 @@ def main():
     make_dpi_aware()
     nav_menu_def = [['File', ["Open... [Ctrl + O]", 'Exit']],
                     ['Edit', ["Settings"]],
-                    ['Help', ["GitHub link", "Check for updates"]]]
+                    ['Help', ["GitHub link [Ctrl + U]", "Check for updates"]]]
 
     markers_layout = [
         [sg.Text(
@@ -146,12 +154,14 @@ def main():
 
         [sg.StatusBar("To get started, open a file", key="-operation_status-", expand_x=True, auto_size_text=False,
                       right_click_menu=["&Right", ["Open...", "Exit"]], tooltip="The status of the current operation."),
-         sg.StatusBar(version_string, key="-program_log-", justification="right", auto_size_text=False,
+         sg.StatusBar(f"{version_string} (checking for updates...)", key="-program_log-", justification="right", auto_size_text=False,
                       tooltip="Program log.")],
     ]
 
     window = sg.Window('PremierPro Markers', layout, resizable=True, finalize=True)
     window.bind("<Control-o>", "Open...")
+    window.bind("<Control-u>", "GitHub link")
+    window.perform_long_operation(lambda: check_for_update(window), "-thread-")
     while True:
         event, values = window.read()
         if debug:
@@ -207,8 +217,14 @@ def main():
         elif event == "GitHub link":
             webbrowser.open("https://github.com/MrRazamataz/PremierPro-Markers")
         elif event == "Check for updates":
-            sg.Popup("This feature is not yet implemented. Please manually check for updates on GitHub.",
-                     title="Not implemented")
+            window["-program_log-"].update(f"{version_string} (checking for updates...)")
+            window.perform_long_operation(lambda: check_for_update(window), "-thread-")
+        elif event == "-thread-":
+            if values["-thread-"][0]:
+                release_notes = values["-thread-"][1]
+                sg.Popup(f"Update available!\nRelease notes:\n{release_notes}\nDownload from GitHub (Ctrl + U)!", title="Update")
+        elif event == "Settings":
+            sg.Popup("A DPI setting toggle will soon be an option.", title="Settings")
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 {
-  "version": 2,
-  "string": "v0.0.2",
-  "release_notes": "Added update checker and added a DPI fix to fix blurriness if scaling enabled."
+  "version": 3,
+  "string": "v0.0.3",
+  "release_notes": "Update checker now creates a popup. Added Ctrl + U as GitHub link."
 }
