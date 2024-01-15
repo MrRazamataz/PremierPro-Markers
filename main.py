@@ -1,20 +1,34 @@
 import traceback
+import urllib.request
 import webbrowser
 
 import PySimpleGUI as sg
 import csv
 import os
 import json
+import ctypes
+import platform
 
-
+version = 2
+version_string = "v0.0.2"
 debug = False
 template_filename = "template.json"
 template = {}
 markers = []
+if not os.path.isfile("settings.json"):
+    with open("settings.json", "w") as f:
+        f.write(json.dumps({"dpi": True, "version": version}, indent=4))
+else:
+    with open("settings.json", "r") as f:
+        settings = json.loads(f.read())
+        if settings["version"] > version:
+            version_string = version_string + " (modified)"
 if not os.path.isfile(template_filename):
     with open(template_filename, "w") as f:
         f.write(json.dumps({"before": "", "after": ""}, indent=4))
-    sg.Popup("Welcome!\nPlease create a template in the Templates tab if you want text to come before or after the chapters.", title="First Run")
+    sg.Popup(
+        "Welcome!\nPlease create a template in the Templates tab if you want text to come before or after the chapters.",
+        title="First Run")
     template = {"before": "", "after": ""}
 else:
     with open(template_filename, "r") as f:
@@ -26,6 +40,28 @@ if len(template_files) > 0:
     template_files.sort()
 else:
     template_files = ["Last used"]
+
+
+def check_for_update():
+    print("Checking for updates...")
+    try:
+        with urllib.request.urlopen(
+                "https://raw.githubusercontent.com/MrRazamataz/PremierPro-Markers/main/version.json") as url:
+            data = json.loads(url.read().decode())
+            if data["version"] > version:
+                print("Update available!")
+                release_notes = data["release_notes"]
+                sg.Popup(f"Update available!\nRelease notes:\n{release_notes}\nDownload from GitHub (Ctrl + U)!", title="Update")
+
+    except Exception as e:
+        print("Error checking for updates: " + str(e))
+        print(traceback.format_exc())
+
+
+def make_dpi_aware():
+    if int(platform.release()) >= 8:
+        if settings["dpi"]:
+            ctypes.windll.shcore.SetProcessDpiAwareness(True)
 
 
 def format_time(input_time):
@@ -68,24 +104,34 @@ def copy_to_clipboard(window, text):
 
 def main():
     global template
+    make_dpi_aware()
     nav_menu_def = [['File', ["Open... [Ctrl + O]", 'Exit']],
+                    ['Edit', ["Settings"]],
                     ['Help', ["GitHub link", "Check for updates"]]]
 
     markers_layout = [
-        [sg.Text('Automagically create YouTube chapters from PremierPro markers. Made by MrRazamataz - inspired by RavinMaddHatter.', expand_x=True, key="-info_text-")],
+        [sg.Text(
+            'Automagically create YouTube chapters from PremierPro markers. Made by MrRazamataz - inspired by RavinMaddHatter.',
+            expand_x=True, key="-info_text-")],
         [sg.FileBrowse("Browse", key="-file_browse-", enable_events=True,
-                      file_types=(("CSV File", "*.csv"),))],
+                       file_types=(("CSV File", "*.csv"),))],
         [sg.Text("Output:")],
         [sg.Multiline(key='output', expand_x=True, expand_y=True)],
         [sg.Button("Copy", key="-copy-", tooltip="Copy to clipboard.")],
     ]
     template_layout = [
-        [sg.Text('Create the template for your description generator.', expand_x=True), sg.Push(), sg.DropDown(template_files, key="-template_files-", enable_events=True, default_value="Last used", readonly=True, auto_size_text=True, size=(20, 1))],
+        [sg.Text('Create the template for your description generator.', expand_x=True), sg.Push(),
+         sg.DropDown(template_files, key="-template_files-", enable_events=True, default_value="Last used",
+                     readonly=True, auto_size_text=True, size=(20, 1))],
         [sg.Text("Before chapters:")],
-        [sg.Multiline(key='-before-', expand_x=True, expand_y=True, default_text=template["before"], enable_events=True, size=(20, 10))],
+        [sg.Multiline(key='-before-', expand_x=True, expand_y=True, default_text=template["before"], enable_events=True,
+                      size=(20, 10))],
         [sg.Text("After chapters:")],
-        [sg.Multiline(key='-after-', expand_x=True, expand_y=True, default_text=template["after"], enable_events=True, size=(20, 10))],
-        [sg.Text("The defaut template is the last used template. If you want to save a template, enter a name in the box below and click save, this will save so you have templates you can switch between.", size=(90, 3))],
+        [sg.Multiline(key='-after-', expand_x=True, expand_y=True, default_text=template["after"], enable_events=True,
+                      size=(20, 10))],
+        [sg.Text(
+            "The defaut template is the last used template. If you want to save a template, enter a name in the box below and click save, this will save so you have templates you can switch between.",
+            size=(90, 3))],
         [sg.Button("Save as template", key="-save-", tooltip="Save template.")],
     ]
 
@@ -100,7 +146,7 @@ def main():
 
         [sg.StatusBar("To get started, open a file", key="-operation_status-", expand_x=True, auto_size_text=False,
                       right_click_menu=["&Right", ["Open...", "Exit"]], tooltip="The status of the current operation."),
-         sg.StatusBar("Ready", key="-program_log-", justification="right", auto_size_text=False,
+         sg.StatusBar(version_string, key="-program_log-", justification="right", auto_size_text=False,
                       tooltip="Program log.")],
     ]
 
@@ -161,7 +207,8 @@ def main():
         elif event == "GitHub link":
             webbrowser.open("https://github.com/MrRazamataz/PremierPro-Markers")
         elif event == "Check for updates":
-            sg.Popup("This feature is not yet implemented. Please manually check for updates on GitHub.", title="Not implemented")
+            sg.Popup("This feature is not yet implemented. Please manually check for updates on GitHub.",
+                     title="Not implemented")
 
 
 if __name__ == '__main__':
