@@ -1,5 +1,5 @@
 {
-  "version": 3,
-  "string": "v0.0.3",
-  "release_notes": "Update checker now creates a popup. Added Ctrl + U as GitHub link."
+  "version": 4,
+  "string": "v0.0.4",
+  "release_notes": "Added more keybinds (save, copy, quit). Add settings menu with DPI scale toggle."
 }

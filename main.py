@@ -9,8 +9,8 @@ import json
 import ctypes
 import platform
 
-version = 3
-version_string = "v0.0.3"
+version = 4
+version_string = "v0.0.4"
 debug = False
 template_filename = "template.json"
 template = {}
@@ -110,11 +110,15 @@ def copy_to_clipboard(window, text):
     window.TKroot.clipboard_append(text)
 
 
+def get_setting_boolean(setting):
+    return settings[setting]
+
+
 def main():
     global template
     make_dpi_aware()
-    nav_menu_def = [['File', ["Open... [Ctrl + O]", 'Exit']],
-                    ['Edit', ["Settings"]],
+    nav_menu_def = [['File', ["Open... [Ctrl + O]", "Save template [Ctrl + S]", "Exit [Ctrl + W]"]],
+                    ['Edit', ["Copy output [Ctrl + C]", "Settings"]],
                     ['Help', ["GitHub link [Ctrl + U]", "Check for updates"]]]
 
     markers_layout = [
@@ -125,7 +129,7 @@ def main():
                        file_types=(("CSV File", "*.csv"),))],
         [sg.Text("Output:")],
         [sg.Multiline(key='output', expand_x=True, expand_y=True)],
-        [sg.Button("Copy", key="-copy-", tooltip="Copy to clipboard.")],
+        [sg.Button("Copy", key="-copy-", tooltip="Copy to clipboard [Ctrl + C].")],
     ]
     template_layout = [
         [sg.Text('Create the template for your description generator.', expand_x=True), sg.Push(),
@@ -147,10 +151,10 @@ def main():
         [sg.Output(size=(70, 20), key='output', expand_x=True, expand_y=True)],
     ]
     layout = [
-        [sg.Menu(nav_menu_def, )],
+        [sg.Menu(nav_menu_def, key="-menu-")],
         [sg.TabGroup(
             [[sg.Tab('Markers', markers_layout), sg.Tab('Template', template_layout), sg.Tab('Log', logs_layout)]],
-            expand_x=True, expand_y=True)],
+            expand_x=True, expand_y=True, enable_events=True, key="-tab_group-")],
 
         [sg.StatusBar("To get started, open a file", key="-operation_status-", expand_x=True, auto_size_text=False,
                       right_click_menu=["&Right", ["Open...", "Exit"]], tooltip="The status of the current operation."),
@@ -161,6 +165,9 @@ def main():
     window = sg.Window('PremierPro Markers', layout, resizable=True, finalize=True)
     window.bind("<Control-o>", "Open...")
     window.bind("<Control-u>", "GitHub link")
+    window.bind("<Control-s>", "-save-")
+    window.bind("<Control-w>", "Exit")
+    window.bind("<Control-c>", "-copy-")
     window.perform_long_operation(lambda: check_for_update(window), "-thread-")
     while True:
         event, values = window.read()
@@ -214,6 +221,7 @@ def main():
                 template = loaded
                 window["-operation_status-"].update("Template loaded.")
                 update_output(window)
+                # window.perform_long_operation(lambda: update_output(window), "-thread-"), dont think this is needed
         elif event == "GitHub link":
             webbrowser.open("https://github.com/MrRazamataz/PremierPro-Markers")
         elif event == "Check for updates":
@@ -224,7 +232,27 @@ def main():
                 release_notes = values["-thread-"][1]
                 sg.Popup(f"Update available!\nRelease notes:\n{release_notes}\nDownload from GitHub (Ctrl + U)!", title="Update")
         elif event == "Settings":
-            sg.Popup("A DPI setting toggle will soon be an option.", title="Settings")
+            changed = False
+            setting_window = sg.Window("Settings",
+                                       [
+                                           [sg.Text("Settings", font=("Arial", 20))],
+                                           [sg.Text("DPI scaling. This will fix blurryness on scaling other than 100%. If it looks wierd for some reason, you can disable it below.")],
+                                           [sg.Check("DPI scaling", default=get_setting_boolean("dpi"), key="-dpi-", enable_events=True)],
+                                       ]
+            )
+            while True:
+                setting_event, setting_values = setting_window.read()
+                if debug:
+                    print(setting_event, setting_values)
+                if setting_event == sg.WIN_CLOSED:
+                    break
+                elif setting_event == "-dpi-":
+                    changed = True
+                    settings["dpi"] = setting_values["-dpi-"]
+                    with open("settings.json", "w") as f:
+                        f.write(json.dumps(settings, indent=4))
+            if changed:
+                sg.popup("You need to restart the program for some changes to take effect.", title="Settings changed detected")
 
 
 if __name__ == '__main__':
