@@ -8,13 +8,16 @@ import os
 import json
 import ctypes
 import platform
+import time
 
-version = 4
-version_string = "v0.0.4"
+version = 5
+version_string = "v0.0.5"
 debug = False
 template_filename = "template.json"
 template = {}
 markers = []
+blink = {}
+
 if not os.path.isfile("settings.json"):
     with open("settings.json", "w") as f:
         f.write(json.dumps({"dpi": True}, indent=4))
@@ -80,14 +83,23 @@ def format_time(input_time):
 
 def open_csv_file(file_path):
     print("Opening file: " + file_path)
+    line_num = 1
     try:
         with open(file_path, encoding='utf-16') as csvfile:
             reader = csv.DictReader(csvfile, delimiter='\t')
             print("File opened successfully")
             markers.clear()
             for i in reader:
-                time = format_time(i['In'])
-                markers.append(f"{time} {i['Marker Name']}")
+                csv_time = format_time(i['In'])
+                if line_num == 1:
+                    if "00:00" not in csv_time: # yt needs it to start with 00:00
+                        csv_time = csv_time[:4] + "00:00"
+                        csv_time = csv_time.replace("00:000:00", "00:00")
+                        add_to_blinker("-modified_warning-")
+                else:
+                    remove_from_blinker("-modified_warning-")
+                markers.append(f"{csv_time} {i['Marker Name']}")
+                line_num += 1
             return True
     except Exception as e:
         print("Error opening file: " + str(e))
@@ -114,6 +126,30 @@ def get_setting_boolean(setting):
     return settings[setting]
 
 
+def blinker(window):
+    while True:
+        time.sleep(0.2)
+        elements = list(blink.keys())
+        for element in elements:
+            if blink[element]:
+                visible = window[element].visible
+                if not visible:
+                    window[element].update(visible=True)
+                current_text_color = window[element].TextColor
+                current_background_color = window[element].BackgroundColor
+                window[element].update(text_color=current_background_color, background_color=current_text_color)
+                time.sleep(0.2)
+                window[element].update(text_color=current_text_color, background_color=current_background_color)
+
+
+def add_to_blinker(element):
+    blink[element] = True
+
+
+def remove_from_blinker(element):
+    blink[element] = False
+
+
 def main():
     global template
     make_dpi_aware()
@@ -129,7 +165,7 @@ def main():
                        file_types=(("CSV File", "*.csv"),))],
         [sg.Text("Output:")],
         [sg.Multiline(key='output', expand_x=True, expand_y=True)],
-        [sg.Button("Copy", key="-copy-", tooltip="Copy to clipboard [Ctrl + C].")],
+        [sg.Button("Copy", key="-copy-", tooltip="Copy to clipboard [Ctrl + C]."), sg.Text("First timestamp modified to be 00:00!", text_color="red", key="-modified_warning-", background_color="black", visible=False)],
     ]
     template_layout = [
         [sg.Text('Create the template for your description generator.', expand_x=True), sg.Push(),
@@ -168,6 +204,7 @@ def main():
     window.bind("<Control-s>", "-save-")
     window.bind("<Control-w>", "Exit")
     window.bind("<Control-c>", "-copy-")
+    window.perform_long_operation(lambda: blinker(window), '-blinker_thread-')
     window.perform_long_operation(lambda: check_for_update(window), "-thread-")
     while True:
         event, values = window.read()
@@ -222,7 +259,7 @@ def main():
                 window["-operation_status-"].update("Template loaded.")
                 update_output(window)
                 # window.perform_long_operation(lambda: update_output(window), "-thread-"), dont think this is needed
-        elif event == "GitHub link":
+        elif event == "GitHub link" or event == "GitHub link [Ctrl + U]":
             webbrowser.open("https://github.com/MrRazamataz/PremierPro-Markers")
         elif event == "Check for updates":
             window["-program_log-"].update(f"{version_string} (checking for updates...)")
