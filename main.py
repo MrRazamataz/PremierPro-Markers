@@ -10,8 +10,8 @@ import ctypes
 import platform
 import time
 
-version = 5
-version_string = "v0.0.5"
+version = 6
+version_string = "v0.0.6"
 debug = False
 template_filename = "template.json"
 template = {}
@@ -96,8 +96,8 @@ def open_csv_file(file_path):
                         csv_time = csv_time[:4] + "00:00"
                         csv_time = csv_time.replace("00:000:00", "00:00")
                         add_to_blinker("-modified_warning-")
-                else:
-                    remove_from_blinker("-modified_warning-")
+                    else:
+                        remove_from_blinker("-modified_warning-")
                 markers.append(f"{csv_time} {i['Marker Name']}")
                 line_num += 1
             return True
@@ -108,6 +108,7 @@ def open_csv_file(file_path):
 
 
 def update_output(window: sg.Window):
+    window["-modified_warning-"].update(visible=False)
     window["-operation_status-"].update("Updating output...")
     output = template["before"] + "\n"
     for i in markers:
