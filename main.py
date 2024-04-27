@@ -1,8 +1,7 @@
 import traceback
 import urllib.request
 import webbrowser
-
-import PySimpleGUI as sg
+from importlib.metadata import version
 import csv
 import os
 import json
@@ -10,7 +9,19 @@ import ctypes
 import platform
 import time
 
-version = 6
+# check that is version 4.60.4 or below NOT 5.X.X or higher
+if int(version('PySimpleGUI').split(".")[0]) >= 5:
+    print("The version of PySimpleGUI is too high (up to 4.60.4 is supported) because it now requires registration or payment. Automatically downloading 4.60.4...")
+    import requests
+    # download https://raw.githubusercontent.com/gabrielsroka/PySimpleGUI/master/PySimpleGUI.py
+    url = "https://raw.githubusercontent.com/gabrielsroka/PySimpleGUI/master/PySimpleGUI.py"
+    r = requests.get(url)
+    with open("PySimpleGUI.py", "wb") as f:
+        f.write(r.content)
+    print("Downloaded PySimpleGUI 4.60.4. Program will now start.")
+import PySimpleGUI as sg
+
+version = 7
 version_string = "v0.0.6"
 debug = False
 template_filename = "template.json"
@@ -63,6 +74,7 @@ def check_for_update(window: sg.Window):
                 print("Make sure to PR any cool changes you make :)\n----")
                 debug = True
                 window["-program_log-"].update(f"{version_string} (modified)")
+                window.set_title(window.Title + " (DEBUG MODE)")
     except Exception as e:
         print("Error checking for updates: " + str(e))
         print(traceback.format_exc())
