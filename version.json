@@ -1,5 +1,5 @@
 {
-  "version": 7,
-  "string": "v0.0.7",
-  "release_notes": "Makes sure to use PySimpleGUI 4.60.4 as 5.X.X requires payment/registration.\nWill download correct version if 5.X.X is found."
+  "version": 9,
+  "string": "v1.0.0",
+  "release_notes": "Added templates menu item. \nMade crashing if occurs more graceful with error handling if possible."
 }
