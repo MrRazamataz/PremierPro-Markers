@@ -36,6 +36,7 @@ output = ""
 if not os.path.isfile("settings.json"):
     with open("settings.json", "w") as f:
         f.write(json.dumps({"dpi": True}, indent=4))
+        settings = {"dpi": True}
 else:
     with open("settings.json", "r") as f:
         settings = json.loads(f.read())
