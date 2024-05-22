@@ -1,5 +1,5 @@
 {
-  "version": 9,
-  "string": "v1.0.0",
-  "release_notes": "Added templates menu item. \nMade crashing if occurs more graceful with error handling if possible."
+  "version": 10,
+  "string": "v1.0.1",
+  "release_notes": "Fix error with settings on first run"
 }

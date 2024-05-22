@@ -24,8 +24,8 @@ if int(version('PySimpleGUI').split(".")[0]) >= 5:
 import PySimpleGUI as sg
 
 
-version = 9
-version_string = "v1.0.0"
+version = 10
+version_string = "v1.0.1"
 debug = False
 template_filename = "template.json"
 template = {}
